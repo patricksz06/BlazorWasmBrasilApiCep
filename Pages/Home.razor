@@ -1,0 +1,77 @@
+﻿@page "/"
+@using System.Net.Http.Json
+@using BlazorWasmBrasilApiCep.Models
+@inject HttpClient Http
+
+<PageTitle>Consulta CEP BrasilAPI</PageTitle>
+
+<h1>Consulta de CEP com Blazor WebAssembly</h1>
+
+<div class="row mb-3">
+    <div class="col-md-4">
+        <label for="cepInput" class="form-label">Digite o CEP:</label>
+        <input id="cepInput" class="form-control" @bind="cepDigitado" placeholder="Ex: 30130000" />
+    </div>
+    <div class="col-md-2 d-flex align-items-end">
+        <button class="btn btn-primary w-100" @onclick="ConsultarCep" disabled="@carregando">
+            @(carregando ? "Buscando..." : "Consultar")
+        </button>
+    </div>
+</div>
+
+@if (!string.IsNullOrEmpty(mensagemErro))
+{
+    <div class="alert alert-danger mt-3">@mensagemErro</div>
+}
+
+@if (dadosCep != null)
+{
+    <div class="card mt-3">
+        <div class="card-header fw-bold">Endereço Encontrado</div>
+        <div class="card-body">
+            <p><strong>CEP:</strong> @dadosCep.cep</p>
+            <p><strong>Logradouro:</strong> @dadosCep.street</p>
+            <p><strong>Bairro:</strong> @dadosCep.neighborhood</p>
+            <p><strong>Cidade:</strong> @dadosCep.city (@dadosCep.state)</p>
+            <p><strong>Serviço:</strong> @dadosCep.service</p>
+            
+            @if (dadosCep.ibge != null)
+            {
+                <hr />
+                <h6 class="fw-bold">Dados do IBGE</h6>
+                <p><strong>Cidade IBGE:</strong> @dadosCep.ibge.city</p>
+                <p><strong>Estado IBGE:</strong> @dadosCep.ibge.state</p>
+            }
+        </div>
+    </div>
+}
+
+@code {
+    private string cepDigitado = "";
+    private Cep? dadosCep;
+    private string mensagemErro = "";
+    private bool carregando = false;
+
+    private async Task ConsultarCep()
+    {
+        if (string.IsNullOrWhiteSpace(cepDigitado)) return;
+
+        carregando = true;
+        mensagemErro = "";
+        dadosCep = null;
+
+        try
+        {
+            // Realiza a chamada para o endpoint correto da BrasilAPI
+            dadosCep = await Http.GetFromJsonAsync<Cep>($"cep/v1/{cepDigitado.Trim()}");
+        }
+        catch (Exception)
+        {
+            mensagemErro = "Não foi possível encontrar o endereço. Verifique o CEP digitado.";
+        }
+        finally
+        {
+            carregando = false;
+        }
+    }
+}
